@@ -1,0 +1,41 @@
+# Docker Compose for local testing before Railway deployment
+version: '3.8'
+
+services:
+  finance-app:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    ports:
+      - "8002:8000"
+    environment:
+      - PORT=8000
+      - ENVIRONMENT=development
+      - TRUSTED_TOKENS=${TRUSTED_TOKENS:-test123}
+      - ALLOWED_ORIGINS=http://localhost:8002
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-dummy}
+    volumes:
+      # Mount local CSV files for testing
+      - ./data:/app/data:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+# Usage:
+# 1. Test build locally:
+#    docker-compose -f docker-compose.dev.yml build
+#
+# 2. Run locally with your actual data:
+#    docker-compose -f docker-compose.dev.yml up
+#
+# 3. Access at: http://localhost:8002
+#
+# 4. Stop:
+#    docker-compose -f docker-compose.dev.yml down
+#
+# 5. Clean rebuild:
+#    docker-compose -f docker-compose.dev.yml build --no-cache

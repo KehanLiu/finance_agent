@@ -11,9 +11,9 @@ from collections import defaultdict
 import anthropic
 from dotenv import load_dotenv
 try:
-    from backend.auth import verify_token, normalize_amount, get_normalization_factor, anonymize_income_entry, TRUSTED_TOKENS
+    from backend.auth import verify_token, normalize_amount, get_normalization_factor, anonymize_income_entry, TRUSTED_TOKENS, anonymize_income_text
 except ImportError:
-    from auth import verify_token, normalize_amount, get_normalization_factor, anonymize_income_entry, TRUSTED_TOKENS
+    from auth import verify_token, normalize_amount, get_normalization_factor, anonymize_income_entry, TRUSTED_TOKENS, anonymize_income_text
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -314,6 +314,7 @@ def get_income(
 @app.get("/api/summary")
 def get_summary(is_trusted: bool = Depends(verify_token)):
     """Get overall spending and income summary"""
+    data = load_data()
     # Use 'In main currency' for EUR-converted amounts
     df_expenses = data[data['Expense amount'] > 0].copy()
     df_income = data[data['Income amount'] > 0].copy()
@@ -326,7 +327,6 @@ def get_summary(is_trusted: bool = Depends(verify_token)):
 
     # Anonymize income categories for guests
     if not is_trusted:
-        from auth import anonymize_income_text
         income_by_category = {}
         for category, amount in income_by_category_raw.items():
             anonymized_cat = anonymize_income_text(str(category))
@@ -398,12 +398,14 @@ def get_summary(is_trusted: bool = Depends(verify_token)):
 @app.get("/api/categories")
 def get_categories():
     """Get all unique categories"""
+    data = load_data()
     categories = data['Category'].dropna().unique().tolist()
     return {"categories": sorted(categories)}
 
 @app.get("/api/tags")
 def get_tags():
     """Get all unique tags"""
+    data = load_data()
     all_tags = set()
     for tags in data['Tags'].dropna():
         for tag in str(tags).split(','):
@@ -416,6 +418,7 @@ def get_tags():
 @limiter.limit("10/minute")  # Max 10 AI requests per minute
 async def get_ai_insights(request: Request, insight_request: AIInsightRequest, is_trusted: bool = Depends(verify_token)):
     """Get AI-powered financial insights using Claude - Only for authenticated users"""
+    data = load_data()
     if not is_trusted:
         raise HTTPException(
             status_code=403,
@@ -475,6 +478,7 @@ Top Spending Categories:
 @app.get("/api/search")
 def search_expenses(q: str, limit: int = 50, is_trusted: bool = Depends(verify_token)):
     """Search expenses by keyword"""
+    data = load_data()
     search_term = q.lower()
 
     mask = (
