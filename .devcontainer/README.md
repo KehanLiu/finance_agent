@@ -4,7 +4,7 @@ This devcontainer configuration provides a development environment that closely 
 
 ## What's Included
 
-- **Python 3.11 slim** (same as production)
+- **Python 3.13 slim** (same as production)
 - **Node.js 20** (for frontend development)
 - **UV package manager** (fast Python dependency management)
 - **Git, curl, vim, nano** (development tools)
@@ -71,7 +71,7 @@ ALLOWED_ORIGINS=http://localhost:8000,http://localhost:5173
 
 | Aspect | DevContainer | Railway Production |
 |--------|-------------|-------------------|
-| Base Image | Python 3.11-slim ✓ | Python 3.11-slim ✓ |
+| Base Image | Python 3.13-slim ✓ | Python 3.13-slim ✓ |
 | Package Manager | UV (local) | pip (production) |
 | File Access | Mounted volumes | Baked into image |
 | Auto-reload | ✓ (--reload) | ✗ |

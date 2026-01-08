@@ -2,7 +2,7 @@
 name = "finance-analysis-backend"
 version = "1.0.0"
 description = "Finance Analysis API with AI insights"
-requires-python = ">=3.11"
+requires-python = ">=3.13"
 dependencies = [
     "fastapi>=0.104.1",
     "uvicorn>=0.24.0",

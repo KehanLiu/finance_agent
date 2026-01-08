@@ -1,6 +1,6 @@
 # Dev container that matches Railway production environment
-# Based on Python 3.11 slim (same as production)
-FROM python:3.11-slim
+# Based on Python 3.13 slim (same as production)
+FROM python:3.13-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
