@@ -155,8 +155,9 @@ def normalize_expenses_list(expenses: list, is_trusted: bool) -> list:
 class LoginRequest(BaseModel):
     token: str
 
-@app.get("/")
-def root():
+@app.get("/api/health")
+def health_check():
+    """Health check endpoint for monitoring"""
     return {"message": "Finance Analysis API", "status": "running"}
 
 @app.post("/api/auth/login")
