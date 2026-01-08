@@ -1,0 +1,2 @@
+# This file keeps the data/ directory in git
+# CSV files are uploaded via Railway CLI and are NOT committed to git

@@ -34,8 +34,10 @@ RUN pip install --no-cache-dir ./backend/
 # Copy backend code
 COPY backend/ ./backend/
 
-# Copy data directory
-COPY data/ ./data/
+# Create data directory (CSV files uploaded via Railway CLI after deployment)
+RUN mkdir -p ./data
+COPY data/*.md ./data/ 2>/dev/null || true
+COPY data/.gitkeep ./data/ 2>/dev/null || true
 
 # Copy frontend build from previous stage
 COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
