@@ -21,6 +21,16 @@ def generate_secure_token():
 
 # Load trusted tokens from environment
 TRUSTED_TOKENS = set()
+
+# Method 1: Comma-separated TRUSTED_TOKENS env variable (recommended)
+if os.getenv("TRUSTED_TOKENS"):
+    tokens = os.getenv("TRUSTED_TOKENS").split(",")
+    for token in tokens:
+        token = token.strip()
+        if token:
+            TRUSTED_TOKENS.add(token)
+
+# Method 2: Individual AUTH_TOKEN_* variables (backwards compatible)
 if os.getenv("AUTH_TOKEN_1"):
     TRUSTED_TOKENS.add(os.getenv("AUTH_TOKEN_1"))
 if os.getenv("AUTH_TOKEN_2"):
