@@ -1,0 +1,324 @@
+/* Dark Mode Expense List Styles */
+.expense-list {
+  background: rgba(42, 42, 62, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.expense-list-header {
+  margin-bottom: 2rem;
+}
+
+.expense-list-header h2 {
+  margin: 0 0 1.5rem 0;
+  color: #ffffff;
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Filter Section */
+.expense-filters {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(102, 126, 234, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 150px;
+}
+
+.filter-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.filter-group select,
+.filter-group input {
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: #e0e0e0;
+  transition: all 0.3s ease;
+}
+
+.filter-group select:hover,
+.filter-group input:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.filter-group select:focus,
+.filter-group input:focus {
+  outline: none;
+  border-color: #667eea;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+}
+
+.filter-group select option {
+  background: #1a1a2e;
+  color: #e0e0e0;
+}
+
+.filter-group input::placeholder {
+  color: #8b8b9a;
+}
+
+/* Update Button */
+.update-button {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.update-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.update-button:active {
+  transform: translateY(0);
+}
+
+/* Results Count */
+.results-count {
+  color: #a0aec0;
+  font-size: 0.95rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 10px;
+  display: inline-block;
+  font-weight: 500;
+}
+
+/* Table Styles */
+.expense-table {
+  overflow-x: auto;
+  margin-top: 1.5rem;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 120px 150px 200px 1fr 120px;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  background: rgba(102, 126, 234, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.75rem;
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 120px 150px 200px 1fr 120px;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin-bottom: 0.5rem;
+  align-items: center;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.02);
+  animation: slideIn 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.table-row:hover {
+  background: rgba(102, 126, 234, 0.1);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateX(5px);
+}
+
+.date {
+  color: #a0aec0;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  background: rgba(102, 126, 234, 0.2);
+  border: 1px solid rgba(102, 126, 234, 0.3);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #ffffff;
+  font-weight: 500;
+  max-width: fit-content;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.tag {
+  display: inline-block;
+  padding: 0.4rem 0.75rem;
+  background: rgba(67, 233, 123, 0.15);
+  border: 1px solid rgba(67, 233, 123, 0.25);
+  color: #43e97b;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.description {
+  color: #e0e0e0;
+  font-size: 0.9rem;
+}
+
+.amount {
+  font-weight: 700;
+  color: #f093fb;
+  text-align: right;
+  font-size: 1.05rem;
+}
+
+/* Loading and No Data States */
+.loading, .no-data {
+  background: rgba(42, 42, 62, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 4rem;
+  border-radius: 20px;
+  text-align: center;
+  color: #8b8b9a;
+  font-size: 1.1rem;
+  backdrop-filter: blur(10px);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .table-header,
+  .table-row {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .table-header {
+    display: none;
+  }
+
+  .table-row {
+    padding: 1.25rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .table-row > div::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #8b8b9a;
+    display: block;
+    margin-bottom: 0.5rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .amount {
+    text-align: left;
+  }
+
+  .expense-filters {
+    flex-direction: column;
+  }
+
+  .filter-group {
+    min-width: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .expense-list {
+    padding: 1.25rem;
+  }
+
+  .expense-list-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .expense-filters {
+    padding: 1rem;
+  }
+}
+
+/* Scrollbar Styling for Table */
+.expense-table::-webkit-scrollbar {
+  height: 8px;
+}
+
+.expense-table::-webkit-scrollbar-track {
+  background: rgba(26, 26, 46, 0.5);
+  border-radius: 4px;
+}
+
+.expense-table::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.5);
+  border-radius: 4px;
+}
+
+.expense-table::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.7);
+}
