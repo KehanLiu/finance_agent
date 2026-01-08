@@ -10,7 +10,10 @@ from datetime import datetime
 from collections import defaultdict
 import anthropic
 from dotenv import load_dotenv
-from auth import verify_token, normalize_amount, get_normalization_factor, anonymize_income_entry, TRUSTED_TOKENS
+try:
+    from backend.auth import verify_token, normalize_amount, get_normalization_factor, anonymize_income_entry, TRUSTED_TOKENS
+except ImportError:
+    from auth import verify_token, normalize_amount, get_normalization_factor, anonymize_income_entry, TRUSTED_TOKENS
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -38,24 +41,35 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
-# Load CSV data
+# Load CSV data (optional at startup - will be loaded when endpoints are accessed)
 DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data")
-csv_files = [f for f in os.listdir(DATA_PATH) if f.endswith('.csv')]
-if not csv_files:
-    raise Exception("No CSV file found in data folder")
+df = None
+NORMALIZATION_FACTOR = None
 
-CSV_FILE = os.path.join(DATA_PATH, csv_files[0])
-df = pd.read_csv(CSV_FILE)
+def load_data():
+    """Load CSV data on first request"""
+    global df, NORMALIZATION_FACTOR
+    if df is not None:
+        return df
 
-# Data cleaning
-df['Date'] = pd.to_datetime(df['Date'], format='%m/%d/%y', errors='coerce')
-df['Expense amount'] = df['Expense amount'].replace(',', '', regex=True).astype(float)
-df['Income amount'] = df['Income amount'].replace(',', '', regex=True).astype(float)
-df['In main currency'] = df['In main currency'].replace(',', '', regex=True).astype(float)
-df = df.sort_values('Date', ascending=False)
+    csv_files = [f for f in os.listdir(DATA_PATH) if f.endswith('.csv')]
+    if not csv_files:
+        raise HTTPException(status_code=503, detail="No financial data available. Please upload CSV files via Railway CLI.")
 
-# Calculate normalization factor once at startup
-NORMALIZATION_FACTOR = get_normalization_factor(df)
+    CSV_FILE = os.path.join(DATA_PATH, csv_files[0])
+    df = pd.read_csv(CSV_FILE)
+
+    # Data cleaning
+    df['Date'] = pd.to_datetime(df['Date'], format='%m/%d/%y', errors='coerce')
+    df['Expense amount'] = df['Expense amount'].replace(',', '', regex=True).astype(float)
+    df['Income amount'] = df['Income amount'].replace(',', '', regex=True).astype(float)
+    df['In main currency'] = df['In main currency'].replace(',', '', regex=True).astype(float)
+    df = df.sort_values('Date', ascending=False)
+
+    # Calculate normalization factor once at startup
+    NORMALIZATION_FACTOR = get_normalization_factor(df)
+
+    return df
 
 class ExpenseFilter(BaseModel):
     category: Optional[str] = None
@@ -205,7 +219,8 @@ def get_expenses(
     is_trusted: bool = Depends(verify_token)
 ):
     """Get filtered expenses"""
-    filtered_df = df.copy()
+    data = load_data()
+    filtered_df = data.copy()
 
     if category:
         filtered_df = filtered_df[filtered_df['Category'].str.contains(category, case=False, na=False)]
@@ -260,7 +275,8 @@ def get_income(
     is_trusted: bool = Depends(verify_token)
 ):
     """Get income entries"""
-    income_df = df[df['Income amount'] > 0].copy()
+    data = load_data()
+    income_df = data[data['Income amount'] > 0].copy()
 
     if start_date:
         income_df = income_df[income_df['Date'] >= pd.to_datetime(start_date)]
@@ -299,8 +315,8 @@ def get_income(
 def get_summary(is_trusted: bool = Depends(verify_token)):
     """Get overall spending and income summary"""
     # Use 'In main currency' for EUR-converted amounts
-    df_expenses = df[df['Expense amount'] > 0].copy()
-    df_income = df[df['Income amount'] > 0].copy()
+    df_expenses = data[data['Expense amount'] > 0].copy()
+    df_income = data[data['Income amount'] > 0].copy()
 
     total_expenses = df_expenses['In main currency'].sum()
     total_income = df_income['In main currency'].sum()
@@ -319,7 +335,7 @@ def get_summary(is_trusted: bool = Depends(verify_token)):
     else:
         income_by_category = income_by_category_raw
 
-    df_with_month = df.copy()
+    df_with_month = data.copy()
     df_with_month['Month'] = df_with_month['Date'].dt.to_period('M').astype(str)
     monthly_expenses = df_with_month[df_with_month['Expense amount'] > 0].groupby('Month')['In main currency'].sum().to_dict()
     monthly_income = df_with_month[df_with_month['Income amount'] > 0].groupby('Month')['In main currency'].sum().to_dict()
@@ -345,7 +361,7 @@ def get_summary(is_trusted: bool = Depends(verify_token)):
 
     tag_summary = dict(sorted(tag_summary.items(), key=lambda x: x[1], reverse=True)[:20])
 
-    df_with_year = df.copy()
+    df_with_year = data.copy()
     df_with_year['Year'] = df_with_year['Date'].dt.year
     yearly_summary = {}
     for year in df_with_year['Year'].dropna().unique():
@@ -367,13 +383,13 @@ def get_summary(is_trusted: bool = Depends(verify_token)):
         "monthly_summary": monthly_summary,
         "yearly_summary": yearly_summary,
         "top_tags": tag_summary,
-        "currency": df['Main currency'].mode()[0] if len(df) > 0 else "EUR",
+        "currency": data['Main currency'].mode()[0] if len(df) > 0 else "EUR",
         "date_range": {
-            "start": df['Date'].min().isoformat() if pd.notna(df['Date'].min()) else None,
-            "end": df['Date'].max().isoformat() if pd.notna(df['Date'].max()) else None
+            "start": data['Date'].min().isoformat() if pd.notna(data['Date'].min()) else None,
+            "end": data['Date'].max().isoformat() if pd.notna(data['Date'].max()) else None
         },
-        "income_count": len(df[df['Income amount'] > 0]),
-        "expense_count": len(df[df['Expense amount'] > 0]),
+        "income_count": len(data[data['Income amount'] > 0]),
+        "expense_count": len(data[data['Expense amount'] > 0]),
         "is_normalized": not is_trusted
     }
 
@@ -382,14 +398,14 @@ def get_summary(is_trusted: bool = Depends(verify_token)):
 @app.get("/api/categories")
 def get_categories():
     """Get all unique categories"""
-    categories = df['Category'].dropna().unique().tolist()
+    categories = data['Category'].dropna().unique().tolist()
     return {"categories": sorted(categories)}
 
 @app.get("/api/tags")
 def get_tags():
     """Get all unique tags"""
     all_tags = set()
-    for tags in df['Tags'].dropna():
+    for tags in data['Tags'].dropna():
         for tag in str(tags).split(','):
             tag = tag.strip()
             if tag:
@@ -462,14 +478,14 @@ def search_expenses(q: str, limit: int = 50, is_trusted: bool = Depends(verify_t
     search_term = q.lower()
 
     mask = (
-        df['Category'].astype(str).str.lower().str.contains(search_term, na=False) |
-        df['Tags'].astype(str).str.lower().str.contains(search_term, na=False) |
-        df['Description'].astype(str).str.lower().str.contains(search_term, na=False)
+        data['Category'].astype(str).str.lower().str.contains(search_term, na=False) |
+        data['Tags'].astype(str).str.lower().str.contains(search_term, na=False) |
+        data['Description'].astype(str).str.lower().str.contains(search_term, na=False)
     )
 
-    results = df[mask].head(limit)
+    results = data[mask].head(limit)
     # Use EUR-converted amounts for totals
-    matched_df = df[mask]
+    matched_df = data[mask]
     total_amount = matched_df[matched_df['Expense amount'] > 0]['In main currency'].sum()
     total_income = matched_df[matched_df['Income amount'] > 0]['In main currency'].sum()
     count = len(matched_df)
