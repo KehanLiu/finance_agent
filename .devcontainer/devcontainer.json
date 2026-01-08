@@ -1,0 +1,80 @@
+{
+  "name": "Finance Dashboard Dev",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+
+  // Features to install in the dev container
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "installOhMyZsh": true,
+      "username": "vscode",
+      "uid": "1000",
+      "gid": "1000"
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  // VS Code customizations
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // Python
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+
+        // JavaScript/TypeScript/React
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+
+        // Docker
+        "ms-azuretools.vscode-docker",
+
+        // General
+        "eamodio.gitlens",
+        "github.copilot"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "python.formatting.provider": "black",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.python"
+        }
+      }
+    }
+  },
+
+  // Forward ports for development
+  "forwardPorts": [8000],
+  "portsAttributes": {
+    "8000": {
+      "label": "Finance Dashboard",
+      "onAutoForward": "notify"
+    }
+  },
+
+  // Post-create command to set up environment
+  "postCreateCommand": "bash .devcontainer/setup.sh",
+
+  // Run commands after the container is created
+  "postStartCommand": "echo 'Finance Dashboard Dev Container Ready! Access at http://localhost:8000'",
+
+  // Set environment variables
+  "remoteEnv": {
+    "ENVIRONMENT": "development"
+  },
+
+  // Mount docker socket for Docker-in-Docker if needed
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+  ],
+
+  // Run as non-root user
+  "remoteUser": "vscode"
+}

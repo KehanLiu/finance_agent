@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+
+    volumes:
+      # Mount the entire project
+      - ..:/workspace:cached
+
+      # Mount data directory with actual CSV files
+      - ../data:/workspace/data:ro
+
+      # Persist command history
+      - ~/.bash_history:/home/vscode/.bash_history
+
+      # Persist git config
+      - ~/.gitconfig:/home/vscode/.gitconfig:ro
+      - ~/.ssh:/home/vscode/.ssh:ro
+
+    # Overrides default command so things don't shut down after the process ends
+    command: sleep infinity
+
+    # Use host network mode for easier development
+    network_mode: host
+
+    # Environment variables for development
+    environment:
+      - ENVIRONMENT=development
+      - PORT=8000
+      - TRUSTED_TOKENS=dev_token_123
+      - ALLOWED_ORIGINS=http://localhost:8000,http://localhost:5173
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-dummy}
+
+    # Keep container running
+    stdin_open: true
+    tty: true
