@@ -7,12 +7,12 @@ services:
       context: .
       dockerfile: Dockerfile.production
     ports:
-      - "8002:8000"
+      - "8000:8000"
     environment:
       - PORT=8000
       - ENVIRONMENT=development
       - TRUSTED_TOKENS=${TRUSTED_TOKENS:-test123}
-      - ALLOWED_ORIGINS=http://localhost:8002
+      - ALLOWED_ORIGINS=http://localhost:8000
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-dummy}
     volumes:
       # Mount local CSV files for testing
@@ -32,7 +32,7 @@ services:
 # 2. Run locally with your actual data:
 #    docker-compose -f docker-compose.dev.yml up
 #
-# 3. Access at: http://localhost:8002
+# 3. Access at: http://localhost:8000
 #
 # 4. Stop:
 #    docker-compose -f docker-compose.dev.yml down
