@@ -29,6 +29,7 @@ class Transaction(Base):
     income_amount = Column(Float, default=0.0)
     currency = Column(String(10))
     main_currency = Column(String(10))
+    in_main_currency = Column(Float, default=0.0)  # Amount converted to main currency
     description = Column(Text)
 
     def to_dict(self):
@@ -42,6 +43,7 @@ class Transaction(Base):
             "Income amount": self.income_amount,
             "Currency": self.currency,
             "Main currency": self.main_currency,
+            "In main currency": self.in_main_currency,
             "Description": self.description,
         }
 

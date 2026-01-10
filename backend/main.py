@@ -598,6 +598,8 @@ async def migrate_csv_data(file: UploadFile = File(...), is_trusted: bool = Depe
         df_migration['Date'] = pd.to_datetime(df_migration['Date'], format='%m/%d/%y', errors='coerce')
         df_migration['Expense amount'] = df_migration['Expense amount'].replace(',', '', regex=True).astype(float)
         df_migration['Income amount'] = df_migration['Income amount'].replace(',', '', regex=True).astype(float)
+        if 'In main currency' in df_migration.columns:
+            df_migration['In main currency'] = df_migration['In main currency'].replace(',', '', regex=True).astype(float)
 
         # Fill NaN
         df_migration = df_migration.fillna({
@@ -608,6 +610,7 @@ async def migrate_csv_data(file: UploadFile = File(...), is_trusted: bool = Depe
             'Income amount': 0.0,
             'Currency': 'EUR',
             'Main currency': 'EUR',
+            'In main currency': 0.0,
             'Description': ''
         })
 
@@ -651,6 +654,7 @@ async def migrate_csv_data(file: UploadFile = File(...), is_trusted: bool = Depe
                         income_amount=float(row['Income amount']),
                         currency=str(row['Currency']),
                         main_currency=str(row['Main currency']),
+                        in_main_currency=float(row.get('In main currency', 0.0)),
                         description=str(row.get('Description', ''))
                     )
                     transactions.append(transaction)
