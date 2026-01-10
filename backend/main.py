@@ -31,10 +31,18 @@ except ImportError:
     from db_operations import get_all_transactions_as_dataframe
 
 # Initialize database connection
+print("[STARTUP] Initializing database...")
+print(f"[STARTUP] DATABASE_URL present: {bool(os.getenv('DATABASE_URL'))}")
 USE_DATABASE = bool(os.getenv("DATABASE_URL"))
 if USE_DATABASE:
-    init_db()
-    print("[DB] PostgreSQL database initialized")
+    try:
+        init_db()
+        print("[DB] PostgreSQL database initialized successfully")
+    except Exception as e:
+        print(f"[DB ERROR] Failed to initialize database: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
 else:
     print("[DB] No DATABASE_URL found - using CSV fallback mode")
 
