@@ -259,7 +259,7 @@ def get_expenses(
     search: Optional[str] = None,
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    limit: int = 10000,
+    limit: int = 100,  # Reduced from 10000 for better mobile performance
     offset: int = 0,
     is_trusted: bool = Depends(verify_token),
     db=Depends(get_db)
@@ -316,7 +316,7 @@ def get_expenses(
 def get_income(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
-    limit: int = 10000,
+    limit: int = 100,  # Reduced from 10000 for better mobile performance
     offset: int = 0,
     is_trusted: bool = Depends(verify_token),
     db=Depends(get_db)
