@@ -193,7 +193,8 @@ class LoginRequest(BaseModel):
 @app.get("/api/health")
 def health_check():
     """Health check endpoint for monitoring"""
-    return {"message": "Finance Analysis API", "status": "running"}
+    # Updated: 2026-01-10 - PostgreSQL migration with lazy initialization
+    return {"message": "Finance Analysis API", "status": "running", "database": "postgresql" if USE_DATABASE else "csv"}
 
 @app.post("/api/auth/login")
 @limiter.limit("5/minute")  # Max 5 login attempts per minute
