@@ -13,6 +13,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 engine = None
 SessionLocal = None
 Base = declarative_base()
+_db_initialized = False
 
 
 class Transaction(Base):
@@ -46,29 +47,44 @@ class Transaction(Base):
 
 
 def init_db():
-    """Initialize database connection"""
-    global engine, SessionLocal
+    """
+    Initialize database connection (lazy - only creates engine, doesn't connect yet)
+    Tables are created on first database access
+    """
+    global engine, SessionLocal, _db_initialized
 
     if not DATABASE_URL:
         # For local development without PostgreSQL, skip database initialization
         return None
 
-    # Create engine
-    engine = create_engine(DATABASE_URL)
+    if _db_initialized:
+        return engine
+
+    # Create engine (lazy connection - doesn't actually connect until first query)
+    engine = create_engine(DATABASE_URL, pool_pre_ping=True)
 
     # Create session factory
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-    # Create tables
-    Base.metadata.create_all(bind=engine)
-
+    _db_initialized = True
     return engine
+
+
+def ensure_tables_exist():
+    """Create tables if they don't exist (called on first database access)"""
+    global engine
+    if engine is not None:
+        Base.metadata.create_all(bind=engine)
 
 
 def get_db():
     """Dependency for FastAPI endpoints"""
     if SessionLocal is None:
         return None
+
+    # Ensure tables exist on first database access
+    ensure_tables_exist()
+
     db = SessionLocal()
     try:
         yield db
