@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Depends, Header, Response, Request
+from fastapi import FastAPI, HTTPException, Depends, Header, Response, Request, UploadFile, File
+import tempfile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -556,6 +557,112 @@ def search_expenses(q: str, limit: int = 50, is_trusted: bool = Depends(verify_t
         "results": records,
         "is_normalized": not is_trusted
     }
+
+@app.post("/api/admin/migrate-csv")
+async def migrate_csv_data(file: UploadFile = File(...), is_trusted: bool = Depends(verify_token)):
+    """
+    One-time migration endpoint to upload CSV and import into PostgreSQL
+    Only accessible with trusted token
+    """
+    if not is_trusted:
+        raise HTTPException(status_code=403, detail="Authentication required")
+
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+
+    if not USE_DATABASE:
+        raise HTTPException(status_code=400, detail="DATABASE_URL not configured - cannot migrate to PostgreSQL")
+
+    try:
+        # Read CSV content
+        content = await file.read()
+
+        # Save temporarily
+        with tempfile.NamedTemporaryFile(mode='wb', suffix='.csv', delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        # Parse CSV
+        df_migration = pd.read_csv(tmp_path)
+
+        # Clean data
+        df_migration['Date'] = pd.to_datetime(df_migration['Date'], format='%m/%d/%y', errors='coerce')
+        df_migration['Expense amount'] = df_migration['Expense amount'].replace(',', '', regex=True).astype(float)
+        df_migration['Income amount'] = df_migration['Income amount'].replace(',', '', regex=True).astype(float)
+
+        # Fill NaN
+        df_migration = df_migration.fillna({
+            'Account': '',
+            'Category': '',
+            'Tags': '',
+            'Expense amount': 0.0,
+            'Income amount': 0.0,
+            'Currency': 'EUR',
+            'Main currency': 'EUR',
+            'Description': ''
+        })
+
+        # Import to database
+        try:
+            from backend.database import SessionLocal, Transaction
+        except ImportError:
+            from database import SessionLocal, Transaction
+
+        db_session = SessionLocal()
+
+        try:
+            # Check existing
+            existing = db_session.query(Transaction).count()
+            if existing > 0:
+                db_session.close()
+                os.unlink(tmp_path)
+                return {
+                    "status": "error",
+                    "message": f"Database already contains {existing} transactions. Clear manually if needed."
+                }
+
+            # Bulk insert
+            inserted = 0
+            batch_size = 1000
+
+            for i in range(0, len(df_migration), batch_size):
+                batch = df_migration.iloc[i:i+batch_size]
+                transactions = []
+
+                for _, row in batch.iterrows():
+                    transaction = Transaction(
+                        date=row['Date'],
+                        account=str(row['Account']),
+                        category=str(row['Category']),
+                        tags=str(row['Tags']),
+                        expense_amount=float(row['Expense amount']),
+                        income_amount=float(row['Income amount']),
+                        currency=str(row['Currency']),
+                        main_currency=str(row['Main currency']),
+                        description=str(row.get('Description', ''))
+                    )
+                    transactions.append(transaction)
+
+                db_session.bulk_save_objects(transactions)
+                db_session.commit()
+                inserted += len(transactions)
+
+            final_count = db_session.query(Transaction).count()
+
+            # Clean up temp file
+            os.unlink(tmp_path)
+
+            return {
+                "status": "success",
+                "message": f"Successfully imported {inserted} transactions",
+                "total_count": final_count
+            }
+
+        finally:
+            db_session.close()
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Migration failed: {str(e)}")
 
 # Serve frontend static files in production
 FRONTEND_DIST = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
