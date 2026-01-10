@@ -567,6 +567,31 @@ def search_expenses(q: str, limit: int = 50, is_trusted: bool = Depends(verify_t
         "is_normalized": not is_trusted
     }
 
+@app.post("/api/admin/reset-database")
+async def reset_database(is_trusted: bool = Depends(verify_token)):
+    """Drop and recreate all database tables - USE WITH CAUTION"""
+    if not is_trusted:
+        raise HTTPException(status_code=403, detail="Authentication required")
+
+    if not USE_DATABASE:
+        raise HTTPException(status_code=400, detail="Not using PostgreSQL database")
+
+    try:
+        from backend.database import Base, engine
+    except ImportError:
+        from database import Base, engine
+
+    if engine is None:
+        raise HTTPException(status_code=500, detail="Database engine not initialized")
+
+    # Drop all tables
+    Base.metadata.drop_all(bind=engine)
+
+    # Recreate all tables
+    Base.metadata.create_all(bind=engine)
+
+    return {"status": "success", "message": "Database tables reset successfully"}
+
 @app.post("/api/admin/migrate-csv")
 async def migrate_csv_data(file: UploadFile = File(...), is_trusted: bool = Depends(verify_token)):
     """
