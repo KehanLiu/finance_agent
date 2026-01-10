@@ -613,9 +613,12 @@ async def migrate_csv_data(file: UploadFile = File(...), is_trusted: bool = Depe
 
         # Import to database
         try:
-            from backend.database import SessionLocal, Transaction
+            from backend.database import SessionLocal, Transaction, ensure_tables_exist
         except ImportError:
-            from database import SessionLocal, Transaction
+            from database import SessionLocal, Transaction, ensure_tables_exist
+
+        # Ensure tables exist before migration
+        ensure_tables_exist()
 
         db_session = SessionLocal()
 
