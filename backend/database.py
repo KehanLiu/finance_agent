@@ -82,7 +82,8 @@ def ensure_tables_exist():
 def get_db():
     """Dependency for FastAPI endpoints"""
     if SessionLocal is None:
-        return None
+        yield None
+        return
 
     # Ensure tables exist on first database access
     ensure_tables_exist()

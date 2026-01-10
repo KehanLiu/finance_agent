@@ -505,8 +505,8 @@ Top Spending Categories:
     try:
         client = anthropic.Anthropic(api_key=api_key)
         message = client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=1024,
+            model="claude-sonnet-4-5-20250929",  # Claude Sonnet 4.5 (September 2024)
+            max_tokens=2048,
             messages=[
                 {
                     "role": "user",
