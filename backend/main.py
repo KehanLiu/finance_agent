@@ -358,10 +358,8 @@ def get_income(
         "is_normalized": not is_trusted
     }
 
-@app.get("/api/summary")
-def get_summary(is_trusted: bool = Depends(verify_token), db=Depends(get_db)):
-    """Get overall spending and income summary"""
-    data = load_data(db)
+def _calculate_summary(data, is_trusted: bool = True):
+    """Internal function to calculate summary from dataframe"""
     # Use 'In main currency' for EUR-converted amounts
     df_expenses = data[data['Expense amount'] > 0].copy()
     df_income = data[data['Income amount'] > 0].copy()
@@ -442,6 +440,12 @@ def get_summary(is_trusted: bool = Depends(verify_token), db=Depends(get_db)):
 
     return apply_data_normalization(result, is_trusted)
 
+@app.get("/api/summary")
+def get_summary(is_trusted: bool = Depends(verify_token), db=Depends(get_db)):
+    """Get overall spending and income summary"""
+    data = load_data(db)
+    return _calculate_summary(data, is_trusted)
+
 @app.get("/api/categories")
 def get_categories(db=Depends(get_db)):
     """Get all unique categories"""
@@ -477,7 +481,8 @@ async def get_ai_insights(request: Request, insight_request: AIInsightRequest, i
         raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
 
     # Always use real data for AI analysis
-    summary_data = get_summary(is_trusted=True)
+    data = load_data(db)
+    summary_data = _calculate_summary(data, is_trusted=True)
 
     context = f"""
 You are a financial advisor analyzing expense data. Here's the summary:
