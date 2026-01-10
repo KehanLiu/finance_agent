@@ -21,6 +21,22 @@ from slowapi.errors import RateLimitExceeded
 # Load environment variables
 load_dotenv()
 
+# Initialize database (PostgreSQL on Railway, CSV fallback for local)
+try:
+    from backend.database import init_db, get_db
+    from backend.db_operations import get_all_transactions_as_dataframe
+except ImportError:
+    from database import init_db, get_db
+    from db_operations import get_all_transactions_as_dataframe
+
+# Initialize database connection
+USE_DATABASE = bool(os.getenv("DATABASE_URL"))
+if USE_DATABASE:
+    init_db()
+    print("[DB] PostgreSQL database initialized")
+else:
+    print("[DB] No DATABASE_URL found - using CSV fallback mode")
+
 # Initialize rate limiter
 limiter = Limiter(key_func=get_remote_address)
 
@@ -46,15 +62,33 @@ DATA_PATH = os.path.join(os.path.dirname(__file__), "..", "data")
 df = None
 NORMALIZATION_FACTOR = None
 
-def load_data():
-    """Load CSV data on first request"""
+def load_data(db=None):
+    """
+    Load financial data - from PostgreSQL if available, otherwise CSV fallback
+
+    Args:
+        db: Database session (optional, for PostgreSQL mode)
+
+    Returns:
+        pandas DataFrame with financial data
+    """
     global df, NORMALIZATION_FACTOR
+
+    # If using PostgreSQL and db session provided
+    if USE_DATABASE and db is not None:
+        df = get_all_transactions_as_dataframe(db)
+        if df.empty:
+            raise HTTPException(status_code=503, detail="No financial data in database. Please run migration script.")
+        NORMALIZATION_FACTOR = get_normalization_factor(df)
+        return df
+
+    # CSV fallback mode (for local development or if no DB)
     if df is not None:
         return df
 
     csv_files = [f for f in os.listdir(DATA_PATH) if f.endswith('.csv')]
     if not csv_files:
-        raise HTTPException(status_code=503, detail="No financial data available. Please upload CSV files via Railway CLI.")
+        raise HTTPException(status_code=503, detail="No financial data available. Please upload CSV files or configure DATABASE_URL.")
 
     CSV_FILE = os.path.join(DATA_PATH, csv_files[0])
     df = pd.read_csv(CSV_FILE)
@@ -217,10 +251,11 @@ def get_expenses(
     end_date: Optional[str] = None,
     limit: int = 10000,
     offset: int = 0,
-    is_trusted: bool = Depends(verify_token)
+    is_trusted: bool = Depends(verify_token),
+    db=Depends(get_db)
 ):
     """Get filtered expenses"""
-    data = load_data()
+    data = load_data(db)
     filtered_df = data.copy()
 
     if category:
@@ -273,10 +308,11 @@ def get_income(
     end_date: Optional[str] = None,
     limit: int = 10000,
     offset: int = 0,
-    is_trusted: bool = Depends(verify_token)
+    is_trusted: bool = Depends(verify_token),
+    db=Depends(get_db)
 ):
     """Get income entries"""
-    data = load_data()
+    data = load_data(db)
     income_df = data[data['Income amount'] > 0].copy()
 
     if start_date:
@@ -313,9 +349,9 @@ def get_income(
     }
 
 @app.get("/api/summary")
-def get_summary(is_trusted: bool = Depends(verify_token)):
+def get_summary(is_trusted: bool = Depends(verify_token), db=Depends(get_db)):
     """Get overall spending and income summary"""
-    data = load_data()
+    data = load_data(db)
     # Use 'In main currency' for EUR-converted amounts
     df_expenses = data[data['Expense amount'] > 0].copy()
     df_income = data[data['Income amount'] > 0].copy()
@@ -397,16 +433,16 @@ def get_summary(is_trusted: bool = Depends(verify_token)):
     return apply_data_normalization(result, is_trusted)
 
 @app.get("/api/categories")
-def get_categories():
+def get_categories(db=Depends(get_db)):
     """Get all unique categories"""
-    data = load_data()
+    data = load_data(db)
     categories = data['Category'].dropna().unique().tolist()
     return {"categories": sorted(categories)}
 
 @app.get("/api/tags")
-def get_tags():
+def get_tags(db=Depends(get_db)):
     """Get all unique tags"""
-    data = load_data()
+    data = load_data(db)
     all_tags = set()
     for tags in data['Tags'].dropna():
         for tag in str(tags).split(','):
@@ -417,9 +453,9 @@ def get_tags():
 
 @app.post("/api/insights")
 @limiter.limit("10/minute")  # Max 10 AI requests per minute
-async def get_ai_insights(request: Request, insight_request: AIInsightRequest, is_trusted: bool = Depends(verify_token)):
+async def get_ai_insights(request: Request, insight_request: AIInsightRequest, is_trusted: bool = Depends(verify_token), db=Depends(get_db)):
     """Get AI-powered financial insights using Claude - Only for authenticated users"""
-    data = load_data()
+    data = load_data(db)
     if not is_trusted:
         raise HTTPException(
             status_code=403,
@@ -477,9 +513,9 @@ Top Spending Categories:
         raise HTTPException(status_code=500, detail=f"AI service error: {str(e)}")
 
 @app.get("/api/search")
-def search_expenses(q: str, limit: int = 50, is_trusted: bool = Depends(verify_token)):
+def search_expenses(q: str, limit: int = 50, is_trusted: bool = Depends(verify_token), db=Depends(get_db)):
     """Search expenses by keyword"""
-    data = load_data()
+    data = load_data(db)
     search_term = q.lower()
 
     mask = (
