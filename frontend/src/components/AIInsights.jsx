@@ -3,7 +3,7 @@ import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
 import './AIInsights.css'
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const API_BASE = import.meta.env.VITE_API_URL || ''
 
 function AIInsights({ summary, isAuthenticated, onLoginClick }) {
   const [chatHistory, setChatHistory] = useState([])
