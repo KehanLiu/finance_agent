@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import axios from 'axios'
+import ReactMarkdown from 'react-markdown'
 import './AIInsights.css'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 function AIInsights({ summary, isAuthenticated, onLoginClick }) {
-  const [insights, setInsights] = useState(null)
+  const [chatHistory, setChatHistory] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [customQuery, setCustomQuery] = useState('')
@@ -18,12 +19,26 @@ function AIInsights({ summary, isAuthenticated, onLoginClick }) {
 
     setLoading(true)
     setError(null)
+
+    // Add user message to chat
+    const userMessage = { role: 'user', content: query || 'Analyze my spending' }
+    setChatHistory(prev => [...prev, userMessage])
+
     try {
       const response = await axios.post(`${API_BASE}/api/insights`, {
         query: query || undefined
+      }, {
+        withCredentials: true  // Send cookies with request
       })
-      setInsights(response.data)
+
+      // Add AI response to chat
+      const aiMessage = { role: 'assistant', content: response.data.insights }
+      setChatHistory(prev => [...prev, aiMessage])
+      setCustomQuery('') // Clear input after successful query
     } catch (err) {
+      // Remove user message if request failed
+      setChatHistory(prev => prev.slice(0, -1))
+
       if (err.response?.status === 403) {
         setError('Please log in to access AI insights')
         onLoginClick()
@@ -42,6 +57,11 @@ function AIInsights({ summary, isAuthenticated, onLoginClick }) {
     }
   }
 
+  const clearChat = () => {
+    setChatHistory([])
+    setError(null)
+  }
+
   const quickQuestions = [
     "What are my top spending categories and how can I reduce them?",
     "Analyze my restaurant spending habits",
@@ -53,47 +73,13 @@ function AIInsights({ summary, isAuthenticated, onLoginClick }) {
   return (
     <div className="ai-insights">
       <div className="insights-header">
-        <h2>AI-Powered Financial Insights</h2>
+        <h2>💬 AI Financial Advisor</h2>
         <p>Get personalized advice based on your spending patterns</p>
         {!isAuthenticated && (
           <div className="auth-required-notice">
             🔒 Login required to access AI insights with your real data
           </div>
         )}
-      </div>
-
-      <div className="query-section">
-        <div className="quick-questions">
-          <h3>Quick Questions</h3>
-          <div className="question-buttons">
-            {quickQuestions.map((question, index) => (
-              <button
-                key={index}
-                onClick={() => getInsights(question)}
-                disabled={loading}
-                className="question-btn"
-              >
-                {question}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="custom-query">
-          <h3>Ask Your Own Question</h3>
-          <form onSubmit={handleCustomQuery}>
-            <input
-              type="text"
-              placeholder="e.g., How much do I spend on skiing compared to other sports?"
-              value={customQuery}
-              onChange={(e) => setCustomQuery(e.target.value)}
-              disabled={loading}
-            />
-            <button type="submit" disabled={loading || !customQuery.trim()}>
-              {loading ? 'Analyzing...' : 'Get Insights'}
-            </button>
-          </form>
-        </div>
       </div>
 
       {error && (
@@ -118,32 +104,86 @@ function AIInsights({ summary, isAuthenticated, onLoginClick }) {
         </div>
       )}
 
-      {loading && (
-        <div className="loading-insights">
-          <div className="spinner"></div>
-          <p>Analyzing your spending patterns with AI...</p>
+      {/* Chat Window */}
+      <div className="chat-container">
+        <div className="chat-header">
+          <span>💬 Conversation</span>
+          {chatHistory.length > 0 && (
+            <button onClick={clearChat} className="clear-chat-btn">Clear Chat</button>
+          )}
         </div>
-      )}
 
-      {insights && !loading && (
-        <div className="insights-result">
-          <h3>AI Analysis</h3>
-          <div className="query-display">
-            <strong>Question:</strong> {insights.query}
-          </div>
-          <div className="insights-content">
-            {insights.insights.split('\n').map((line, index) => (
-              <p key={index}>{line}</p>
-            ))}
-          </div>
-        </div>
-      )}
+        <div className="chat-messages">
+          {chatHistory.length === 0 && !loading && (
+            <div className="chat-placeholder">
+              <p>👋 Hello! I'm your AI financial advisor.</p>
+              <p>Ask me anything about your spending, income, or financial habits.</p>
+            </div>
+          )}
 
-      {!insights && !loading && !error && (
-        <div className="placeholder">
-          <p>Click on a quick question or ask your own to get AI-powered insights about your spending.</p>
+          {chatHistory.map((message, index) => (
+            <div key={index} className={`chat-message ${message.role}`}>
+              <div className="message-avatar">
+                {message.role === 'user' ? '👤' : '🤖'}
+              </div>
+              <div className="message-content">
+                {message.role === 'user' ? (
+                  <p>{message.content}</p>
+                ) : (
+                  <ReactMarkdown>{message.content}</ReactMarkdown>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {loading && (
+            <div className="chat-message assistant">
+              <div className="message-avatar">🤖</div>
+              <div className="message-content">
+                <div className="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+                <p className="analyzing-text">Analyzing your financial data...</p>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Input Section */}
+        <div className="chat-input-section">
+          <div className="quick-questions">
+            <h4>💡 Quick Questions:</h4>
+            <div className="question-buttons">
+              {quickQuestions.map((question, index) => (
+                <button
+                  key={index}
+                  onClick={() => getInsights(question)}
+                  disabled={loading}
+                  className="question-btn"
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleCustomQuery} className="chat-input-form">
+            <input
+              type="text"
+              placeholder="Ask me anything about your finances..."
+              value={customQuery}
+              onChange={(e) => setCustomQuery(e.target.value)}
+              disabled={loading}
+              className="chat-input"
+            />
+            <button type="submit" disabled={loading || !customQuery.trim()} className="send-btn">
+              {loading ? '⏳' : '📤'}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   )
 }
