@@ -60,3 +60,25 @@ Thumbs.db
 # Logs
 *.log
 logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Python virtual environments
+backend/.venv/
+backend/venv/
+.venv/
+
+# TradeRepublic exports (if you add integration later)
+traderepublic_export/
+exports/
+export.log
+
+# Local test data
+*.csv
+*.xlsx
+*.json
+!backend/.env.example
+!frontend/.env.example
