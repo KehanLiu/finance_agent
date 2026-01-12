@@ -153,21 +153,23 @@ function AIInsights({ summary, isAuthenticated, onLoginClick }) {
 
         {/* Input Section */}
         <div className="chat-input-section">
-          <div className="quick-questions">
-            <h4>💡 Quick Questions:</h4>
-            <div className="question-buttons">
-              {quickQuestions.map((question, index) => (
-                <button
-                  key={index}
-                  onClick={() => getInsights(question)}
-                  disabled={loading}
-                  className="question-btn"
-                >
-                  {question}
-                </button>
-              ))}
+          {chatHistory.length === 0 && (
+            <div className="quick-questions">
+              <h4>💡 Quick Questions:</h4>
+              <div className="question-buttons">
+                {quickQuestions.map((question, index) => (
+                  <button
+                    key={index}
+                    onClick={() => getInsights(question)}
+                    disabled={loading}
+                    className="question-btn"
+                  >
+                    {question}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           <form onSubmit={handleCustomQuery} className="chat-input-form">
             <input

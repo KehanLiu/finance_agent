@@ -439,13 +439,30 @@
     max-width: 85%;
   }
 
+  /* Make quick questions compact on mobile */
+  .quick-questions {
+    margin-bottom: 0.75rem;
+  }
+
+  .quick-questions h4 {
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+  }
+
   .question-buttons {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
   }
 
   .question-btn {
     width: 100%;
-    text-align: left;
+    text-align: center;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .chat-messages {
@@ -453,6 +470,23 @@
   }
 
   .chat-input-section {
-    padding: 1rem;
+    padding: 0.75rem;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+
+  .chat-input-form {
+    margin-top: 0.5rem;
+  }
+
+  .chat-input {
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .send-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
   }
 }
